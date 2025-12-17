@@ -1,0 +1,159 @@
+---
+title: "lecture_8"
+format: html
+---
+
+
+For this task I have chosen my first graph from 6th assignment. It looks like this
+
+![Image caption](Picture1.png)
+
+```{r}
+install.packages("tidyr")
+install.packages("dplyr")
+install.packages("ggplot2")
+
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+I decided to generate the data partly. I will create the position at the week a bit randomly, but I took top 10 songs of 2015 by the whole year for the real reference.
+
+I will make Data frame for better understanding.
+
+```{r}
+billboard_2k15 <- data.frame(
+  Rank = 1:5,
+  Title = c(
+    "Uptown Funk",
+    "Thinking Out Loud",
+    "See You Again",
+    "Trap Queen",
+    "Sugar"
+  ),
+  Artist = c(
+    "Mark Ronson ft. Bruno Mars",
+    "Ed Sheeran",
+    "Wiz Khalifa ft. Charlie Puth",
+    "Fetty Wap",
+    "Maroon 5"
+  ),
+  Peak_Position = c(1, 2, 1, 2, 2),
+  Weeks_at_Peak = c(14, 0, 12, 0, 0)
+)
+View(billboard_2k15)
+```
+
+This data is taken from the internet (https://grokipedia.com/page/Billboard_Year-End_Hot_100_singles_of_2015).
+I have to extend it in order to have a graph representing something similar to what we have on graph.
+
+```{r}
+monthly_positions <- data.frame(
+  Rank = 1:5,
+  Jan   = c(1, 10, 3, 7, 5),
+  Feb   = c(1, 5, 2, 6, 4),
+  Mar   = c(2, 3, 1, 5, 6),
+  Apr   = c(3, 2, 1, 4, 5),
+  May   = c(4, 1, 2, 3, 6),
+  Jun   = c(5, 2, 1, 3, 4),
+  Jul   = c(6, 3, 1, 2, 4),
+  Aug   = c(7, 4, 2, 1, 3),
+  Sep   = c(8, 5, 3, 1, 2),
+  Oct   = c(9, 6, 4, 2, 1),
+  Nov   = c(10, 7, 5, 3, 1),
+  Dec   = c(10, 8, 6, 4, 2)
+)
+View(monthly_positions)
+```
+
+All the numbers where taken from my mind, they don't represent the truth. Rank column is the same as in the first dataframe (billboard_2k15), so it just represents the song.
+
+Next, I make one dataframe from these two by inner join. Now, we have the data for the graph.
+
+```{r}
+df <- inner_join(billboard_2k15, monthly_positions)
+View(df)
+```
+
+After a small analysis, I understood, that it is not the best choice of data distribution for plot creation. Some changes in dataframe structure should be applied, so I will reshape it a bit by longering it.
+
+```{r}
+df <- pivot_longer(data = df, cols = Jan:Dec, names_to = "Month", values_to = "Position")
+View(df)
+```
+
+Now it's much better.
+Simple line plot is the best choice for this graph.
+I will create the most basic variant of the plot for now.
+
+```{r}
+ggplot(data = df, aes(x = Month, y = Position, group = Title))+
+    geom_line()
+```
+
+This looks extremely bad for now. Months are ordered by alphabetic order, no distingushing for the songs, zig-zags, graph is reversed, etc.
+Dealing with months was a problem, it took some time.
+From what I searched in the internet, I have to make Month column an ordered factor.
+
+```{r}
+df <- df %>%
+  mutate(
+    Month = factor(
+      Month,
+      levels = c("Jan","Feb","Mar","Apr","May","Jun",
+                 "Jul","Aug","Sep","Oct","Nov","Dec"),
+      ordered = TRUE
+    )
+  )
+View(df)
+```
+
+Nothing has changed from the first view, but if we plot the graph again, we will see, that no alphabetic order appears now.
+Also I reversed the Y scale.
+
+```{r}
+ggplot(data = df, aes(x = Month, y = Position, group = Title))+
+    geom_line()+
+    scale_y_reverse()
+```
+
+Super.
+Now I can play with variables of functions for plotting the data.
+
+```{r}
+ggplot(data = df, aes(x = Month, y = Position, group = Title))+
+    geom_line(linewidth = 1, aes(color = Title))+
+    geom_point(size = 1, aes(color = Title)) +
+    scale_y_reverse(breaks = 1:10) +
+    #geom_smooth(se = FALSE, span = 0.4, aes(color = Title))+
+    labs (title = "Billboard 2k15 for top 5 songs of the year")
+```
+
+Now, line by line.
+`ggplot` sets the canvas.
+`aes` stands for aesthetics, here we initialise, what X, Y axes represent, and group our data by a Title of a song.
+`geom_line` creates the lines, which connect all the point of the exact Title for each line.
+`geom_point` creates these points.
+`color` distributes the colors for each Title.
+`scale_y_reverse` reverses the Y axes.
+`breaks` for this example shows each number for each line. Before, it showed only third part or half of them.
+`labs` sets the text labels for the plot. 
+`title` means the title of the plot.
+
+I decided to make the graph a bit smoother. I have found this function in the Net:
+`geom_smooth`, which connects the points by smooth curved line.
+`se` TRUE shows so-called "confidence interval band" around the main line, FALSE -- not.
+`span` controls how tightly `geom_smooth` follows the data. The lower `span`, the more precise it follows.
+
+So, the final graph looks like this.
+
+```{r}
+ggplot(data = df, aes(x = Month, y = Position, group = Title))+
+    geom_smooth(se = FALSE, span = 0.4, aes(color = Title))+
+    scale_y_reverse(breaks = 1:10) +
+    labs (title = "Billboard 2k15 for top 5 songs of the year")
+```
+
+Now, it is a more readable version of the graph we had initially.
+To sum up, during this assignment I have repeated the basics of graph creation using ggplot library in R.
